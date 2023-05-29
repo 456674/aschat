@@ -2,7 +2,8 @@ package com.asyou20.aschat;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -105,7 +106,11 @@ public class ASClient extends JFrame {
         });
     }}
     class LoginRigister extends JFrame{
-        private ASClient client;
+        public static ASClient getClient() {
+            return client;
+        }
+
+        private static ASClient client;
         public LoginRigister(ASClient sclient){
             client = sclient;
             loginGUI();
@@ -159,11 +164,13 @@ public class ASClient extends JFrame {
                 public void run() {
                     try {
                         Opencv opencv = new Opencv();
+
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
 
                 }});
+
 
         }
         private void login() {

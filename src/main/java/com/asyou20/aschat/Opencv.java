@@ -1,13 +1,13 @@
 package com.asyou20.aschat;
 
-import com.arcsoft.face.EngineConfiguration;
-import com.arcsoft.face.FaceEngine;
-import com.arcsoft.face.FaceInfo;
-import com.arcsoft.face.FunctionConfiguration;
+import com.arcsoft.face.*;
 import com.arcsoft.face.enums.DetectMode;
 import com.arcsoft.face.enums.DetectOrient;
 import com.arcsoft.face.enums.ImageFormat;
+import com.arcsoft.face.toolkit.ImageFactory;
+import com.arcsoft.face.toolkit.ImageInfo;
 import com.asyou20.aschat.service.FaceService;
+import com.asyou20.aschat.service.Impl.FaceServiceImpl;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.*;
 import org.bytedeco.opencv.opencv_core.IplImage;
@@ -15,12 +15,15 @@ import org.bytedeco.opencv.opencv_core.Mat;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Opencv extends JFrame {
+    private  JButton registerButton;
     private JButton loginButton; // 添加登录按钮
     private JLabel statusLabel; // 添加状态标签
     private JButton testButton;
@@ -31,19 +34,33 @@ public class Opencv extends JFrame {
 
     private static String sdkLibPath = "C:\\Users\\gaojack\\Downloads\\Mongo-Blog-ant-main\\Mongo-Blog-ant-main\\aschat\\libs\\WIN64";
     static FaceInfo faceInfo = null;
-    public static List<FaceInfo> imageInfoList = new ArrayList<>();
+    public List<FaceInfo> imageInfoList = new ArrayList<>();
     private static byte[] imageData;
     private JLabel imageLabel;
+    private boolean flag;
+
+    public boolean isFlag() {
+        return flag;
+    }
+
+    public FaceEngine getFaceEngine() {
+        return faceEngine;
+    }
+
     private FaceEngine faceEngine;
 
+    private FaceService faceService = new FaceServiceImpl();
+
     public String username;
+    private ImageInfo imageInfo;
+    private boolean foundflag = false;
 
     public static byte[] getImageData() {
         return imageData;
 
     }
 
-    public static List<FaceInfo> getImageInfoList() {
+    public  List<FaceInfo> getImageInfoList() {
 
         return imageInfoList;
     }
@@ -56,6 +73,7 @@ public class Opencv extends JFrame {
     public void updateImage(BufferedImage image) {
         imageLabel.setIcon(new ImageIcon(image));
     }
+
     public void startCamera() throws Exception{
         new Thread(()->{while (true) {
             // 将原来在 while (true) 循环中的代码放在这里
@@ -68,20 +86,33 @@ public class Opencv extends JFrame {
             imageData = new byte[iplImage.imageSize()];
             iplImage.imageData().get(imageData);
             int errorCode = faceEngine.detectFaces(imageData, iplImage.width(), iplImage.height(), ImageFormat.CP_PAF_BGR24, imageInfoList);
-            username = FaceService.facesearch("1");
+            //username = faceService.facesearch("1");
             // 将 IplImage 转换为 BufferedImage
             Mat mat = new Mat(iplImage);
             BufferedImage bufferedImage = new BufferedImage(mat.cols(), mat.rows(), BufferedImage.TYPE_3BYTE_BGR);
             byte[] data = ((DataBufferByte) bufferedImage.getRaster().getDataBuffer()).getData();
             mat.data().get(data);
-            if (imageInfoList.size() > 0) {
-                String text = "人脸检测状态： <font color='green'>" + "检测到 "+imageInfoList.size() + " 张人脸</font><br>识别用户： "+username;
-                statusLabel.setText("<html>" + text + "</html>");
-                //loginButton.setEnabled(true); // 启用登录按钮
-            } else {
-                String text = "人脸检测状态： <font color='red'>" + "未检测到人脸</font>"+"<br>识别用户： "+username;
-                statusLabel.setText("<html>" + text + "</html>");
-                //loginButton.setEnabled(false); // 禁用登录按钮
+            imageInfo = ImageFactory.bufferedImage2ImageInfo(bufferedImage);
+            String s= faceService.facesearch(imageInfo,faceEngine);
+            if(!foundflag) {
+                if (imageInfoList.size() > 0) {
+                    if (!s.equals("0")) {
+                        String text = "人脸检测状态： <font color='green'>" + "检测到 " + imageInfoList.size() + " 张人脸</font><br>识别用户： " + s +"<br>置信度: "+faceService.getConfidence();
+                        statusLabel.setText("<html>" + text + "</html>");
+                        loginButton.setEnabled(true); // 启用登录按钮
+                        registerButton.setEnabled(false);
+                        foundflag = true;
+
+                    } else {
+                        String text = "人脸检测状态： <font color='green'>" + "检测到 " + imageInfoList.size() + " 张人脸</font><br>识别用户： 暂未识别到用户";
+                        statusLabel.setText("<html>" + text + "</html>");
+                        loginButton.setEnabled(false); //
+                    }
+                } else {
+                    String text = "人脸检测状态： <font color='red'>" + "未检测到人脸</font>" + "<br>识别用户： ";
+                    statusLabel.setText("<html>" + text + "</html>");
+                    loginButton.setEnabled(false); // 禁用登录按钮
+                }
             }
 
             // 更新显示的图像
@@ -89,7 +120,23 @@ public class Opencv extends JFrame {
 
             //canvas.showImage(frame);
         }}).start();
+        //状态栏的监听线程
 
+        //注册按钮的监听线程
+        new Thread(()->{while(true){
+            if(imageInfoList!=null){
+            if(imageInfoList.size()==0){
+                registerButton.setEnabled(false);
+
+            }else{
+                registerButton.setEnabled(true);
+            }}
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }}).start();
     }
     Opencv() throws Exception {
 
@@ -103,26 +150,41 @@ public class Opencv extends JFrame {
         Toolkit toolkit = Toolkit.getDefaultToolkit();
         Dimension scrnsize = toolkit.getScreenSize();
         this.setBounds(scrnsize.width / 3 + 100, scrnsize.height / 3, 800, 400);
-        testButton = new JButton("测试按钮");
+        loginButton = new JButton("登录");
+        loginButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                LoginRigister.getClient().start();
+                setEnabled(false);
+                dispose();
+            }
+        });
+
+        registerButton = new JButton("人脸注册");
+        registerButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                FaceFeature facefearture = new FaceFeature();
+                faceEngine.extractFaceFeature(imageInfo.getImageData(), imageInfo.getWidth(), imageInfo.getHeight(), imageInfo.getImageFormat(), imageInfoList.get(0),facefearture);
+                faceService.faceload(facefearture.getFeatureData());
+            }
+        });
         statusLabel = new JLabel("状态");
         imageLabel = new JLabel();
 
         // ...
         this.add(imageLabel);
-        this.add(testButton);
+        this.add(loginButton);
         this.add(statusLabel);
+        this.add(registerButton);
 
-
-        //this.pack();
 
         this.setLocationRelativeTo(null);
         this.setVisible(true);
         converter = new OpenCVFrameConverter.ToIplImage();
         EngineConfiguration engineConfiguration = new EngineConfiguration();
-//        engineConfiguration.setDetectMode(DetectMode.ASF_DETECT_MODE_IMAGE);
         engineConfiguration.setDetectMode(DetectMode.ASF_DETECT_MODE_VIDEO);
         engineConfiguration.setDetectFaceOrientPriority(DetectOrient.ASF_OP_0_ONLY);
-//        engineConfiguration.setDetectFaceOrientPriority(DetectOrient.ASF_OP_ALL_OUT);
         engineConfiguration.setDetectFaceMaxNum(10);
         engineConfiguration.setDetectFaceScaleVal(16); //视频推荐16 图片推荐32
         //功能配置
