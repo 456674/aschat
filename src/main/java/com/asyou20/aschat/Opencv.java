@@ -19,10 +19,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Opencv extends JFrame {
+
     private  JButton registerButton;
     private JButton loginButton; // 添加登录按钮
     private JLabel statusLabel; // 添加状态标签
@@ -32,7 +35,7 @@ public class Opencv extends JFrame {
     private static Frame frame;
     private static OpenCVFrameConverter.ToIplImage converter;
 
-    private static String sdkLibPath = "C:\\Users\\gaojack\\Downloads\\Mongo-Blog-ant-main\\Mongo-Blog-ant-main\\aschat\\libs\\WIN64";
+    private static String sdkLibPath = System.getProperty("user.dir")+"\\libs\\WIN64";//拼接字符串获取绝对路径
     static FaceInfo faceInfo = null;
     public List<FaceInfo> imageInfoList = new ArrayList<>();
     private static byte[] imageData;
@@ -93,11 +96,11 @@ public class Opencv extends JFrame {
             byte[] data = ((DataBufferByte) bufferedImage.getRaster().getDataBuffer()).getData();
             mat.data().get(data);
             imageInfo = ImageFactory.bufferedImage2ImageInfo(bufferedImage);
-            String s= faceService.facesearch(imageInfo,faceEngine);
+            username = faceService.facesearch(imageInfo,faceEngine);
             if(!foundflag) {
                 if (imageInfoList.size() > 0) {
-                    if (!s.equals("0")) {
-                        String text = "人脸检测状态： <font color='green'>" + "检测到 " + imageInfoList.size() + " 张人脸</font><br>识别用户： " + s +"<br>置信度: "+faceService.getConfidence();
+                    if (!username.equals("0")) {
+                        String text = "人脸检测状态： <font color='green'>" + "检测到 " + imageInfoList.size() + " 张人脸</font><br>识别用户： " + username +"<br>置信度:  "+faceService.getConfidence();
                         statusLabel.setText("<html>" + text + "</html>");
                         loginButton.setEnabled(true); // 启用登录按钮
                         registerButton.setEnabled(false);
@@ -120,7 +123,6 @@ public class Opencv extends JFrame {
 
             //canvas.showImage(frame);
         }}).start();
-        //状态栏的监听线程
 
         //注册按钮的监听线程
         new Thread(()->{while(true){
@@ -154,7 +156,13 @@ public class Opencv extends JFrame {
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                LoginRigister.getClient().start();
+                try {
+                    LoginRigister.getClient().start(username);
+                } catch (UnsupportedEncodingException ex) {
+                    throw new RuntimeException(ex);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
                 setEnabled(false);
                 dispose();
             }

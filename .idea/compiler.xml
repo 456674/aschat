@@ -11,7 +11,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="aschat" target="1.8" />
+      <module name="aschat" target="19" />
     </bytecodeTargetLevel>
   </component>
 </project>

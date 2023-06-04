@@ -14,6 +14,9 @@ public interface UserDao {
     User getUserByBase64(String base64);
     @Select("select * from user where id = #{id}")
     User getUserById(int id);
+    @Select("select * from user where username = #{username}")
+    User getUserByUsername(String username);
+
     @Insert("insert into user (username, password, base64) " +
             "values (" +
             "#{user.username}," +

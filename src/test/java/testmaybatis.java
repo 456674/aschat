@@ -21,13 +21,13 @@ public class testmaybatis {
         SqlSession sqlSession = sqlSessionFactory.openSession();
         UserDao userDao = sqlSession.getMapper(UserDao.class);
 
-       User user =new User(3,"2","2","2");
-      int s= userDao.insertUser(user);
-       sqlSession.commit();
+      //User user =new User(3,"2","2","2");
+      //int s= userDao.insertUser(user);
+       //sqlSession.commit();
         User user2 = new User();
 
         user2 = userDao.getUserById(2);
-         System.out.println(s);
+        // System.out.println(s);
         sqlSession.close();
     }
 }

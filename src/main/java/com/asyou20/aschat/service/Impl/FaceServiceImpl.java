@@ -9,14 +9,14 @@ import com.asyou20.aschat.dao.UserDao;
 import com.asyou20.aschat.entity.User;
 import com.asyou20.aschat.service.FaceService;
 import org.apache.ibatis.session.SqlSession;
-import org.springframework.stereotype.Service;
+
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.asyou20.aschat.utils.daosource.getDao;
-@Service("FaceService")
+
 public class FaceServiceImpl implements FaceService {
     SqlSession sqlSession =  getDao();
     private UserDao userDao = sqlSession.getMapper(UserDao.class);
@@ -35,7 +35,9 @@ private float confidence;
             if (faceInfoList.size() != 0) {
                 FaceFeature targetFacefearture = new FaceFeature();
                 faceEngine.extractFaceFeature(imageInfo.getImageData(), imageInfo.getWidth(), imageInfo.getHeight(), imageInfo.getImageFormat(), faceInfoList.get(0), targetFacefearture);
+                int size = 0;
                 for (User faceuser : faceUser) {
+                    size++;
                     byte[] facefeature = faceuser.getBase64();
                     //byte[] bytes = ImgbyteBase64.Base64toImgbyte(facebase64);
                     FaceFeature sourceFacefeature = new FaceFeature();
@@ -46,8 +48,9 @@ private float confidence;
                     if (faceSimilar.getScore() > 0.9) {
                         confidence = faceSimilar.getScore();
                         return faceuser.getUsername();
-                    } else {
-
+                    } else if(faceUser.size()!=size) {
+                    continue;
+                    }else{
                         return "0";
                     }
                 }
